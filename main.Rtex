@@ -1,0 +1,98 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{python}
+\usepackage{tabu}
+\usepackage{listings}
+\usepackage[margin=1in]{geometry}
+
+\begin{document}
+\title{Comparison of R and Python\\ for Discriminant Analysis}
+\author{Tina Shi}
+\date{Jan. 3, 2017}
+\maketitle
+In the book Multivariate Statistical Inference and Applications by Alvin C. Rencher, the discriminant analysis is introduced as classification, and based on a vector y of variables measured on a sampling unit, we wish to classify the unit into one of the two populations. 
+Here we assume $y_1|G_1\sim N(\mu_1, \Sigma_1), y_2|G_2\sim N(\mu_2, \Sigma_2)$, $p_1$ and $p_2$ are the prior probabilities that $y$ will come from $G_1$ and $G_2$ respectively, where $p_2=1-p_1$.\par 
+How do we classify the new observation $y$? When $ \Sigma_1= \Sigma_2$, the linear classification rule is defined to be: Assign $y$ to $G_1$ if 
+$$(\mu_1-\mu_2)^{'} \Sigma^{-1}y>\frac{1}{2}(\mu_1-\mu_2)^{'}\Sigma^{-1}(\mu_1+\mu_2)+ln(\frac{p_1}{p_2})$$ and to $G_2$ otherwise.\par
+Here $\mu_1,\mu_2$, and $\Sigma$ are all unknown, how do we find this line? The way presented in the text book is relatively simple, we can use $\bar{y}_1,\bar{y}_2, S_1, S_2$ to estimate $\mu_1, \mu_2$, and $\Sigma$. Then our linear classification rule (or linear discriminant rule) is to assign $y$ to $G_1$ if $$(\bar{y}_1-\bar{y}_2)^{'}S_pl^{-1}y>\frac{1}{2}(\bar{y}_1-\bar{y}_2)^{'}S_pl^{-1}((\bar{y}_1+\bar{y}_2)^{'}+ln(\frac{p_1}{p_2})$$ and to $G_2$ otherwise, where $S_{pl}=\frac{(n_1-1)S_1+(n_2-1)S_2}{n_1+n_2-2}$.\par
+If $\Sigma_1\neq\Sigma_2$, then logarithm of the density ratio for the multivariate normal is $$Q(y)=\frac{1}{2}ln(\frac{|\Sigma_1|}{|\Sigma_2|})-\frac{1}{2}(\mu_1^{'}\Sigma_1^{-1}\mu_1-\mu_2^{'}\Sigma_2^{-1}\mu_2)+(\mu_1^{'}\Sigma_1^{-1}-\mu_2^{'}\Sigma_2^{-1})y-\frac{1}{2}y^{'}(\Sigma_1^{-1}-\Sigma_2^{-1})y.$$ The optimal classification rule is: Assign $y$ to $G_1$ if $$Q(y)>ln(\frac{p_1}{p_2})$$ and to $G_2$ otherwise.\par
+Again it uses the sample statistics to estimate the population parameters,  $Q(y)$ is estimated by $$Q(y)=\frac{1}{2}ln(\frac{|S_1|}{|S_2|})-\frac{1}{2}(\bar{y_1}_1^{'}S_1^{-1}\bar{y_1}-\bar{y_2}^{'}S_2^{-1}\bar{y_2})+(\bar{y_1}^{'}S_1^{-1}-\bar{y_2}^{'}S_2^{-1})y-\frac{1}{2}y^{'}(S_1^{-1}-S_2^{-1})y.$$
+Here is the dataset coming from the book exercise:\\
+\begin{tabu} to 0.8\textwidth { | X[l] | X[c] | X[c] |X[c]| X[c] | X[c] | X[c] |X[r]|}
+ \hline
+ group & y1 & y2 & y3 & group & y1 & y2 & y3\\
+ \hline
+1  & 8  & 60 & 58 & 2  & 6.2  & 49 & 30\\
+ \hline
+1  & 8  & 156 & 68 & 2  & 5.6 & 31 & 23\\
+ \hline
+1  & 8  & 90 & 37 & 2  & 5.8 & 42 & 22\\
+ \hline
+1  & 6.1 & 44 & 27 & 2  & 5.7 & 42 & 14\\
+ \hline
+1  & 7.4 & 207 & 31 & 2  & 6.2 & 40 & 23\\
+ \hline
+1  & 7.4 & 120 & 32 & 2  & 6.4 & 49 & 18\\
+ \hline
+1  & 8.4 & 65 & 43 & 2 & 5.8 & 31 & 17\\
+ \hline
+1  & 8.1 & 237 & 45 & 2 & 6.4 & 31 & 19\\
+ \hline
+1  & 8.3  & 57 & 60 & 2  & 5.4  & 62 & 26\\
+ \hline
+1  & 7  & 94 & 43 & 2  & 5.4  & 42 & 16\\
+ \hline
+1  & 8.5  & 86 & 40 &    &    &   &  \\
+ \hline
+1  & 8.4  & 52 & 48 &    &    &   &  \\
+ \hline
+1  & 7.9  & 146 & 52 &    &    &   &  \\
+\hline
+\end{tabu}
+
+Assume $p_1=p_2$, we will use this dataset to find the rule and apply this rule to the data itself and check the misclassification rate. The estimated rule is equivalent to the following: Assign $y$ to $G_1$ if $(y-\bar{y_1})^{'}S_{pl}^{-1}(y-\bar{y_1})-(y-\bar{y_2})^{'}S_{pl}^{-1}(y-\bar{y_2})<0$, and to $G_2$ otherwise.\\
+ 
+ 
+<<>>=
+library(MASS)
+soil<- read.csv(file='soil.csv',sep=',', header=T)
+# extract data for group 1
+x1 = soil[soil$group==1, 2:4]
+# extract data for group 2
+x2 = soil[soil$group==2, 2:4]
+# the number of observations in group 1
+n1 = nrow(x1)
+# the number of observations in group 2
+n2 = nrow(x2)
+s1 = cov(x1)
+s2 = cov(x2)
+# compute the pooled covariance matrix
+sp = ((n1-1)*s1 + (n2-1)*s2)/(n1+n2-2)
+# extract all the data without the group label for prediction
+x = soil[, 2:4]
+# create an empty list
+l <- c()
+# use a for loop to compute the value on the left side of the equation
+# if it is less than 0, then it is assigned to group 1
+for (i in 1:nrow(x)){
+  D1 <- t(unlist(x[i,]-colMeans(x1)))%*%ginv(sp)%*%unlist(x[i,]-colMeans(x1))
+  D2 <- t(unlist(x[i,]-colMeans(x2)))%*%ginv(sp)%*%unlist(x[i,]-colMeans(x2))
+  l[i] <- D1-D2
+}
+# check how many values are less than 0
+l<0
+# print out the predicted value
+l
+
+ 
+@
+
+\begin{python}
+print(2+3)
+
+\end{python}
+
+This is a cool environment to do the work.
+
+\end{document}
