@@ -9,7 +9,7 @@
 \begin{document}
 \title{Comparison of R and Python\\ for Discriminant Analysis}
 \author{Tina Shi}
-\date{Jan. 3, 2017}
+\date{Jan. 16, 2017}
 \maketitle
 In the book Multivariate Statistical Inference and Applications by Alvin C. Rencher, the discriminant analysis is introduced as classification, and based on a vector y of variables measured on a sampling unit, we wish to classify the unit into one of the two populations. 
 Here we assume $y_1|G_1\sim N(\mu_1, \Sigma_1), y_2|G_2\sim N(\mu_2, \Sigma_2)$, $p_1$ and $p_2$ are the prior probabilities that $y$ will come from $G_1$ and $G_2$ respectively, where $p_2=1-p_1$.\par 
@@ -146,9 +146,43 @@ y = soil['group']
 # fit the model
 clf = LinearDiscriminantAnalysis(priors=[0.5,0.5])
 clf.fit(x,y)
+print(clf.predict(x))
+# print the scaling result
+print(clf.scalings_)
+print(clf.decision_function(x))
 
 \end{lstlisting}
 
-This is a cool environment to do the work.
+The prediction and scaling results are the same as before:\\ 
+prediction result:[1 1 1 2 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2];\\
+scaling result: array([[-1.29339365],[-0.00786647],[-0.0315165 ]]).\\
+
+However, the decision function result is different:
+\begin{lstlisting}
+[ -8.13796536 -12.16956556  -6.53393643  5.27245852  
+-6.36534997   -3.90624219   -8.45414487  -12.32642339  
+-9.74801817   -2.49298637   -9.20741753  -8.66250878  
+-9.48671413   4.2810012     8.5683624    7.38679498   
+8.82365703    5.37864944    4.73118641   8.30628133
+5.14581719    8.26804346    10.04775596]
+\end{lstlisting}
+
+What leads to this difference? The document shows that decision$\_$function(x) predicts confidence scores for samples, and the confidence score here is the signed distance of that sample to the hyperplane. How does Python compute the confidence score? The Python reports the intercept and coefficients of the decision function, we just need to use the regression formula $intercept+X^{T}coefficients$ to get the confidence scores. Here shows the calculation in Python 3:
+\begin{lstlisting}[language=Python]
+print((np.dot(x,clf.coef_.T)+clf.intercept_).transpose())
+\end{lstlisting}
+\begin{lstlisting}
+[ -8.13796536 -12.16956556  -6.53393643  5.27245852  
+-6.36534997   -3.90624219   -8.45414487  -12.32642339  
+-9.74801817   -2.49298637   -9.20741753  -8.66250878  
+-9.48671413   4.2810012     8.5683624    7.38679498   
+8.82365703    5.37864944    4.73118641   8.30628133
+5.14581719    8.26804346    10.04775596]
+\end{lstlisting}
+
+
+For this simple case, the results for three situations are the same even though the decision function are computed differently. But it might be very different for larger datasets and more complex situations.
+
+
 
 \end{document}
