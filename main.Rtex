@@ -88,10 +88,66 @@ l
  
 @
 
-\begin{python}
-print(2+3)
+We find that only the fourth observation is misclassified to group 2 since the first 13 observations belong to group 1 and the last 10 observations belong to group 2.
+We can also find the value $(y-\bar{y_1})^{'}S_{pl}^{-1}(y-\bar{y_1})-(y-\bar{y_2})^{'}S_{pl}^{-1}(y-\bar{y_2})$ for the fourth observation is . It is much larger than 0. The misclassification rate is $\frac{1}{23}=0.0435$.
 
-\end{python}
+But if we use the packages in R or Python to work out this problem, there are some differences in the results.
+
+In R, the lda package uses Fisher’s linear discriminant, which does not make some of the assumptions of LDA such as normally distributed or equal class covariance. It finds a linear combination of features that have means and variances for $w\cdot y$ that have means $w\cdot \mu_i$ and variances $w^{T}\Sigma_i w$ for $i=1,2$. This $w$ is found by maximizing the ratio of the variance between the classes to the variance within the classes. In other words, it tries to find $w$ such that it will make the items in the same group closer to each other while the items in different groups farther from each other. When the assumptions of LDA are satisfied, the equation is equivalent to LDA. The vector $w$ is the normal to the discriminant hyperplane. In a two-dimensional problem, the line that best divides the two groups is perpendicular to $w$. Generally, the data points are projected onto $w$; then the threshold $c$ that best separates the data is chosen from analysis of the one-dimensional distribution and we determine the rule to be: assign $y$ to group 1 if $w\cdot y>c$. However, if projections of points from both classes exhibit approximately the same distributions, a good choice would be the hyperplane between projections of the two means, $w\cdot \mu_1$ and $w\cdot \mu_2$, which is $c=w\cdot \frac{1}{2}(\mu_1+\mu_2)$. In our case, we simply set $c=0$.
+
+Here is the R code for running the lda package on the same dataset.
+<<>>=
+library(MASS)
+soil<- read.csv(file='soil.csv',sep=',', header=T)
+soil.lda <- lda(group~.,data=soil,prior=c(1,1)/2)
+
+@
+
+We can get the normalized matrix which transforms observations to discriminant functions by specify scaling at the result of lda in R. Here is the R code with the output:
+<<>>=
+# the coefficients of the lda function
+soil.lda$scaling
+# compute the decision function based on the coefficients
+t(as.matrix(x) %*% soil.lda$scaling)
+@
+
+All the values are negative, are they all classified as group 1? No. Look at the result of prediction and the confusion matrix:
+<<>>=
+predict(soil.lda, soil)$class
+ct <- table(soil$group, predict(soil.lda)$class)
+ct
+@
+
+The result of the confusion matrix also shows that only the fourth observation has been misclassified to group 2 when it belongs to group 1. The misclassification rate is also $\frac{1}{23}=0.0435$. How does R compute the classification rule? Since the scaling result has been normalized in order to make the within groups covariance matrix spherical, we also need to normalize the input data to get the right value. Here is the R code and output for computing the decision rule based on normalized data:
+<<>>=
+means = (colMeans(x1)+colMeans(x2))/2
+scaled_decision = scale(as.matrix(x), center = means, scale = FALSE) %*% soil.lda$scaling
+t(scaled_decision)
+@
+
+Clearly, the fourth observation has been classified to group 2 instead of group 1. This is what the prediction result gives to you in R when you call x after applying predict to the lda:
+<<>>=
+t(predict(soil.lda, soil)$x)
+
+@
+
+In Python, the scaling result is the same as the one in R, however the values reported for classification are quite different. The python 3 code for finding the line, which utilizes sklearn package, is shown below:
+
+\begin{lstlisting}[language=Python]
+# import the packages needed
+import numpy as np
+import pandas as pd
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+# import the data
+soil = pd.read_csv("soil.csv",sep=',',header=0)
+# specify the x and y
+x = soil[['y1','y2','y3']]
+y = soil['group']
+# fit the model
+clf = LinearDiscriminantAnalysis(priors=[0.5,0.5])
+clf.fit(x,y)
+
+\end{lstlisting}
 
 This is a cool environment to do the work.
 
